@@ -129,6 +129,27 @@ pipeline {
                 }
             }
         }
+        
+        stage('Smoke Test (Producción)') {
+            steps {
+                echo "Validando que el balanceador Nginx y Flask respondan en http://${EC2_IP}..."
+                sh """
+                    # Hacemos una petición HTTP y guardamos solo el código de respuesta (ej: 200, 502, 404)
+                    STATUS_CODE=\$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_IP}/)
+                    
+                    echo "Respuesta del servidor: \$STATUS_CODE"
+                    
+                    if [ "\$STATUS_CODE" -eq 200 ]; then
+                        echo "¡Prueba de humo aprobada exitosamente! El sitio está vivo."
+                    else
+                        echo "¡ALERTA! El servidor respondió con código \$STATUS_CODE. El despliegue falló."
+                        exit 1
+                    fi
+                """
+            }
+        }
+        
+        
     }
 
     post {
