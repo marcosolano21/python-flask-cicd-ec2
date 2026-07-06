@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>System Monitor</title>
+
+    <meta http-equiv="refresh" content="3">
+
+</head>
+
+<body>
+
+<h1>System Monitor</h1>
+
+<h2>Machine Information</h2>
+
+<p><b>Hostname:</b> {{ hostname }}</p>
+
+<p><b>Operating System:</b> {{ system }}</p>
+
+<p><b>Version:</b> {{ release }}</p>
+
+<hr>
+
+<h2>CPU use</h2>
+
+<p>{{ cpu }} %</p>
+
+<hr>
+
+<h2>Memory</h2>
+
+<p>Total: {{ ram_total }} GB</p>
+
+<p>Used: {{ ram_used }} GB</p>
+
+<p>Usage: {{ ram_percent }} %</p>
+
+<hr>
+
+<h2>Disk</h2>
+
+<p>Total: {{ disk_total }} GB</p>
+
+<p>Used: {{ disk_used }} GB</p>
+
+<p>Usage: {{ disk_percent }} %</p>
+
+</body>
+
+</html>
