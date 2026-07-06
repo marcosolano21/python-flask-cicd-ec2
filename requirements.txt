@@ -1,0 +1,5 @@
+flask
+psutil
+pytest
+flake8
+bandit
