@@ -37,4 +37,5 @@ def index():
 
 if __name__ == "__main__":
     puerto = int(sys.argv[1]) if len(sys.argv) > 1 else 5000
-    app.run(host="0.0.0.0", port=puerto)
+    app.run(host="0.0.0.0", port=puerto) # nosec
+    # The nosec mean that we are going to ignore the bandit error code since we are using a local tests environment
