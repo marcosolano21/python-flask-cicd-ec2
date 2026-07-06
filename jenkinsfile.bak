@@ -3,43 +3,93 @@ pipeline {
 
     environment {
         EC2_USER    = 'ubuntu'
-        EC2_IP      = '18.232.121.30' // <--- Cambia por la IP de tu EC2
+        EC2_IP      = '18.232.121.30' // <--- Cambia por tu IP
         EC2_SSH     = "${EC2_USER}@${EC2_IP}"
-        REPO_DIR    = '/home/ubuntu/python-project/python-flask-cicd-ec2' // <--- Ruta de tu proyecto en la EC2
+        REPO_DIR    = '/home/ubuntu/python-project/python-flask-cicd-ec2'
     }
 
     stages {
-        stage('Checkout') {
+            stage('Checkout') {
+                steps {
+                    echo '========== CHECKOUT =========='
+                    git url: 'https://github.com/marcosolano21/python-flask-cicd-ec2.git', branch: 'main'
+                }
+                post {
+                    success {
+                        echo 'Checkout completed successfully.'
+                    }
+    
+                    failure {
+                        echo 'Checkout failed.'
+                    }
+                }
+        }
+        // ==========================================
+        // FASE DE INTEGRACIÓN CONTINUA (CI)
+        // Corriendo localmente en el contenedor de Jenkins
+        // ==========================================
+        
+        stage('Preparar Entorno Local') {
             steps {
-                echo '========== CHECKOUT =========='
-                git url: 'https://github.com/marcosolano21/python-flask-cicd-ec2.git', branch: 'main'
-            }
-            post {
-                success {
-                    echo 'Checkout completed successfully.'
-                }
-
-                failure {
-                    echo 'Checkout failed.'
-                }
+                echo 'Instalando dependencias de prueba en el entorno de Jenkins...'
+                // Creamos un entorno virtual temporal dentro del agente de Jenkins
+                sh '''
+                    python3 -m venv venv_local
+                    . venv_local/bin/activate
+                    pwd
+                    ls -l
+                    pip install -r requirements.txt
+                '''
             }
         }
-        
-        
+
+        stage('Análisis de Calidad (Linting)') {
+            steps {
+                echo 'Ejecutando Flake8 para validar estilo y sintaxis...'
+                sh '''
+                    . venv_local/bin/activate
+                    # Falla si hay errores de sintaxis o variables no definidas
+                    flake8 app.py --count --select=E9,F63,F7,F82 --show-source --statistics
+                '''
+            }
+        }
+
+        stage('Análisis de Seguridad (SAST)') {
+            steps {
+                echo 'Ejecutando Bandit para buscar fallos de seguridad en el código...'
+                sh '''
+                    . venv_local/bin/activate
+                    bandit -r app.py
+                '''
+            }
+        }
+
+        stage('Pruebas Unitarias (Unit Tests)') {
+            steps {
+                echo 'Ejecutando pruebas con PyTest...'
+                sh '''
+                    . venv_local/bin/activate
+                    #cd flask
+                    PYTHONPATH=. pytest test_app.py -v
+                '''
+            }
+        }
+
+        // ==========================================
+        // FASE DE DESPLIEGUE CONTINUO (CD)
+        // Solo se ejecuta si todas las etapas de CI pasaron en verde
+        // ==========================================
+
         stage('Descargar Cambios en EC2') {
             steps {
-                echo 'Conectando a la EC2 para descargar el último código de GitHub...'
+                echo 'CI Exitoso. Iniciando fase CD en la EC2...'
                 sshagent(credentials: ['ec2-ssh-pem']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ${EC2_SSH} '
-                            cd ${REPO_DIR}/
-                            
-                            # Traer los cambios de GitHub de forma limpia
+                            cd ${REPO_DIR}
                             git pull origin main
-                            
-                            # Asegurar que las dependencias de Python estén al día
                             source venv/bin/activate
-                            #pip install -r flask/requirements.txt
+                            pip install -r requirements.txt
                         '
                     """
                 }
@@ -48,12 +98,12 @@ pipeline {
 
         stage('Desplegar Instancia 1 (Puerto 8081)') {
             steps {
-                echo 'Reiniciando Instancia 1 con el código nuevo...'
+                echo 'Reiniciando Instancia 1 (8081)...'
                 sshagent(credentials: ['ec2-ssh-pem']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ${EC2_SSH} '
                             fuser -k 8081/tcp || true
-                            cd ${REPO_DIR}/
+                            cd ${REPO_DIR}
                             source venv/bin/activate
                             nohup python3 app.py 8081 > flask_8081.log 2>&1 &
                             sleep 5
@@ -65,7 +115,7 @@ pipeline {
 
         stage('Desplegar Instancia 2 (Puerto 8082)') {
             steps {
-                echo 'Reiniciando Instancia 2 con el código nuevo...'
+                echo 'Reiniciando Instancia 2 (8082)...'
                 sshagent(credentials: ['ec2-ssh-pem']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ${EC2_SSH} '
@@ -82,7 +132,11 @@ pipeline {
     }
 
     post {
-        success { echo '¡Despliegue automático desde GitHub completado con éxito!' }
-        failure { echo 'Error en el despliegue automático.' }
+        success {
+            echo '¡El Pipeline completo de CI/CD terminó de manera exitosa!'
+        }
+        failure {
+            echo 'El pipeline falló. Revisa la etapa que se pintó de rojo para solucionar el problema.'
+        }
     }
 }
