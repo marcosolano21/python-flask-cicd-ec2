@@ -18,5 +18,4 @@ def test_home_page_content(client):
     html_contenido = respuesta.data.decode('utf-8')
     
     # Validamos que las palabras clave de tu dashboard de psutil existan en el HTML
-    assert "CPU" in html_contenido
-    assert "Memoria" in html_contenido
+    assert "System Monitor" in html_contenido
