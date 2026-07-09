@@ -36,6 +36,8 @@ def index():
     )
 
 if __name__ == "__main__":
-    puerto = int(sys.argv[1]) if len(sys.argv) > 1 else 5000
-    app.run(host="0.0.0.0", port=puerto) # nosec
-    # The nosec mean that we are going to ignore the bandit error code since we are using a local tests environment
+    selected_port = int(sys.argv[1]) if len(sys.argv) > 1 else 5000
+    app.run(host="0.0.0.0", port=selected_port) # nosec
+
+    # The nosec comment above means that we are going to ignore the bandit error code since we are using a local tests environment
+    # Since 0.0.0.0 means that it will receive traffic from all sources, bandit shows an error if nosec comment is removed

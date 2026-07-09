@@ -1,11 +1,11 @@
-]pipeline {
+pipeline {
     agent any
 
     environment {
         EC2_USER    = 'ubuntu'
-        EC2_IP      = '18.232.121.30' // <--- Cambia por tu IP
+        EC2_IP      = '18.232.121.30' // <--- Update your EC2´s public IP
         EC2_SSH     = "${EC2_USER}@${EC2_IP}"
-        REPO_DIR    = '/home/ubuntu/python-project/python-flask-cicd-ec2'
+        REPO_DIR    = '/home/ubuntu/python-project/python-flask-cicd-ec2' // <--- Update the directory where you cloned the GitHub repo
     }
 
     stages {
@@ -25,14 +25,14 @@
                 }
         }
         // ==========================================
-        // FASE DE INTEGRACIÓN CONTINUA (CI)
-        // Corriendo localmente en el contenedor de Jenkins
+        // CI Stage
+        // Running locally on Jenkins container
         // ==========================================
         
-        stage('Preparar Entorno Local') {
+        stage('Preparation for local environment') {
             steps {
-                echo 'Instalando dependencias de prueba en el entorno de Jenkins...'
-                // Creamos un entorno virtual temporal dentro del agente de Jenkins
+                echo 'Installing dependencies'
+                // Creating virtual environment on Jenkins container
                 sh '''
                     python3 -m venv venv_local
                     . venv_local/bin/activate
@@ -43,20 +43,20 @@
             }
         }
 
-        stage('Análisis de Calidad (Linting)') {
+        stage('Code Quality Analysis (Linting)') {
             steps {
-                echo 'Ejecutando Flake8 para validar estilo y sintaxis...'
+                echo 'Running Flake8 to validate syntaxis...'
                 sh '''
                     . venv_local/bin/activate
-                    # Falla si hay errores de sintaxis o variables no definidas
+                    # If any error is found, it will fail
                     flake8 app.py --count --select=E9,F63,F7,F82 --show-source --statistics
                 '''
             }
         }
 
-        stage('Análisis de Seguridad (SAST)') {
+        stage('Static Application Security Testing (SAST)') {
             steps {
-                echo 'Ejecutando Bandit para buscar fallos de seguridad en el código...'
+                echo 'Running bandit to find security vulnerabilities...'
                 sh '''
                     . venv_local/bin/activate
                     bandit -r app.py
@@ -64,26 +64,25 @@
             }
         }
 
-        stage('Pruebas Unitarias (Unit Tests)') {
+        stage('Unit & Integration Testing (Unit Tests)') {
             steps {
-                echo 'Ejecutando pruebas con PyTest...'
+                echo 'Running PyTest tests...'
                 sh '''
                     . venv_local/bin/activate
-                    #cd flask
                     PYTHONPATH=. pytest test_app.py -v
                 '''
             }
         }
 
         // ==========================================
-        // FASE DE DESPLIEGUE CONTINUO (CD)
-        // Solo se ejecuta si todas las etapas de CI pasaron en verde
+        // CD stage
+        // Only executed if all the previous tests are successfull
         // ==========================================
 
-        stage('Descargar Cambios en EC2') {
+        stage('Updating changes on EC2') {
             steps {
-                echo 'CI Exitoso. Iniciando fase CD en la EC2...'
-                sshagent(credentials: ['ec2-ssh-pem']) {
+                echo 'CI successfull. Stating CD stage on EC2...'
+                sshagent(credentials: ['ec2-ssh-pem']) { // Here you need to upate your Jenkins credentials for SSH login on EC2 instance
                     sh """
                         ssh -o StrictHostKeyChecking=no ${EC2_SSH} '
                             cd ${REPO_DIR}
@@ -96,9 +95,9 @@
             }
         }
 
-        stage('Desplegar Instancia 1 (Puerto 8081)') {
+        stage('Deploying on port 8081') {
             steps {
-                echo 'Reiniciando Instancia 1 (8081)...'
+                echo 'Restating process on port 8081...'
                 sshagent(credentials: ['ec2-ssh-pem']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ${EC2_SSH} '
@@ -113,9 +112,9 @@
             }
         }
 
-        stage('Desplegar Instancia 2 (Puerto 8082)') {
+        stage('Deploying on port 8082') {
             steps {
-                echo 'Reiniciando Instancia 2 (8082)...'
+                echo 'Restating process on port 8081...'
                 sshagent(credentials: ['ec2-ssh-pem']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ${EC2_SSH} '
@@ -132,17 +131,17 @@
         
         stage('Smoke Test (Producción)') {
             steps {
-                echo "Validando que el balanceador Nginx y Flask respondan en http://${EC2_IP}..."
+                echo "Validation nginx load balancer and Flask respond to http://${EC2_IP}..."
                 sh """
-                    # Hacemos una petición HTTP y guardamos solo el código de respuesta (ej: 200, 502, 404)
+                    # Here we are making an HTTP request and save the result code (ej: 200, 502, 404)
                     STATUS_CODE=\$(curl -s -o /dev/null -w "%{http_code}" http://${EC2_IP}/)
                     
-                    echo "Respuesta del servidor: \$STATUS_CODE"
+                    echo "Response: \$STATUS_CODE"
                     
                     if [ "\$STATUS_CODE" -eq 200 ]; then
-                        echo "¡Prueba de humo aprobada exitosamente! El sitio está vivo."
+                        echo "¡Smoke test successfull!"
                     else
-                        echo "¡ALERTA! El servidor respondió con código \$STATUS_CODE. El despliegue falló."
+                        echo "¡FAILED! Response: \$STATUS_CODE. "
                         exit 1
                     fi
                 """
@@ -154,10 +153,10 @@
 
     post {
         success {
-            echo '¡El Pipeline completo de CI/CD terminó de manera exitosa!'
+            echo '¡Pipeline completed successfully!'
         }
         failure {
-            echo 'El pipeline falló. Revisa la etapa que se pintó de rojo para solucionar el problema.'
+            echo 'Pipeline failed, check errors'
         }
     }
 }

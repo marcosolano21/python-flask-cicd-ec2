@@ -8,14 +8,14 @@ def client():
         yield client
 
 def test_home_page_status(client):
-    """Verifica que la ruta principal responda exitosamente"""
-    respuesta = client.get('/')
-    assert respuesta.status_code == 200
+    """Verifies if the response is successful"""
+    resp = client.get('/')
+    assert resp.status_code == 200
 
 def test_home_page_content(client):
-    """Verifica que el HTML renderizado contenga los elementos clave de la app"""
-    respuesta = client.get('/')
-    html_contenido = respuesta.data.decode('utf-8')
+    """Verifying if html is working"""
+    resp = client.get('/')
+    html_cont = resp.data.decode('utf-8')
     
-    # Validamos que las palabras clave de tu dashboard de psutil existan en el HTML
-    assert "System Monitor" in html_contenido
+    # Validating the dashboard
+    assert "System Monitor" in html_cont
