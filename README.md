@@ -68,7 +68,7 @@ Web Server (Nginx): Install Nginx to manage port routing and reverse proxy opera
 sudo apt install nginx -y
 Process Management Utilities: Ensure fuser is available. The deployment script relies on fuser to safely identify and terminate old application processes on specific ports before spinning up new ones:
 
-Bash
+``` Bash
 sudo apt install psmisc -y
 
 Security Group Configuration (AWS Console): * Open port 80 (HTTP) to public traffic so users can access the dashboard.
