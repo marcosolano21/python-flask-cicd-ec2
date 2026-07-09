@@ -49,7 +49,9 @@ To simulate the production-ready environment on your AWS EC2 instance, the appli
    python3 app.py 8082 &
 
 To access the app, you need to search on your browser: http://EC2_Public_IP:80
+
 Once running, Nginx automatically listens on port 80 and acts as a load balancer, seamlessly distributing user requests between port 8081 and port 8082.
+
 From this point forward, the environment is fully hands-off. Whenever you make code modifications locally and execute a git push to GitHub, the Jenkins Webhook immediately triggers the CI/CD pipeline—testing, validating, and updating the live EC2 environment with zero downtime.
 
 ---
@@ -63,17 +65,17 @@ Before executing the pipeline, the AWS EC2 instance must be provisioned with **U
    sudo apt update && sudo apt upgrade -y
    sudo apt install git python3-pip python3-venv -y
 
-Web Server (Nginx): Install Nginx to manage port routing and reverse proxy operations:
+2.  **Web Server (Nginx):** Install Nginx to manage port routing and reverse proxy operations:
+    ```bash
+    sudo apt install nginx -y
+    Process Management Utilities: Ensure fuser is available. The deployment script relies on fuser to safely identify and terminate old application processes on specific ports before spinning up new ones:
 
-sudo apt install nginx -y
-Process Management Utilities: Ensure fuser is available. The deployment script relies on fuser to safely identify and terminate old application processes on specific ports before spinning up new ones:
 
-``` Bash
-sudo apt install psmisc -y
+    sudo apt install psmisc -y
 
-Security Group Configuration (AWS Console): * Open port 80 (HTTP) to public traffic so users can access the dashboard.
+    Security Group Configuration (AWS Console): * Open port 80 (HTTP) to public traffic so users can access the dashboard.
 
-Open port 22 (SSH) restricted to your Jenkins server IP (and your local machine) to allow secure automation access.
+    Open port 22 (SSH) restricted to your Jenkins server IP (and your local machine) to allow secure automation access.
 
 ---
 
